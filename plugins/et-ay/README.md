@@ -2,6 +2,12 @@
 
 et-ay shows an estimated time to completion for the prompt Claude is working on, live in your Claude Code status line, and learns from your own history to make the estimate better over time.
 
+Install it from inside Claude Code with:
+
+```text
+/plugin install et-ay --marketplace ChristopherALewis/claude-et-ay
+```
+
 After installing, run `/et-ay:setup` to add it to your status line (Claude Code does not let plugins do this themselves). Your existing status line, if you have one, is kept and the estimate is appended to it.
 
 | Command | What it does |
