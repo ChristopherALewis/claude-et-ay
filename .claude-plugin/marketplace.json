@@ -1,0 +1,21 @@
+{
+  "name": "christopheralewis",
+  "description": "Claude Code plugins by Christopher Lewis.",
+  "owner": {
+    "name": "Christopher Lewis",
+    "url": "https://github.com/ChristopherALewis"
+  },
+  "plugins": [
+    {
+      "name": "et-ay",
+      "source": "./plugins/et-ay",
+      "description": "Estimated time to completion for the prompt Claude is working on, shown live in your status line.",
+      "category": "productivity",
+      "tags": [
+        "eta",
+        "statusline",
+        "progress"
+      ]
+    }
+  ]
+}

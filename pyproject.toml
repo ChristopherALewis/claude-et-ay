@@ -1,0 +1,30 @@
+# Tooling configuration only. et-ay is distributed as a Claude Code plugin, not
+# as a Python package, so there is no build backend here.
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+extend-exclude = [".git"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "BLE", "I", "UP", "SIM", "RUF"]
+ignore = [
+    "UP006",  # keep typing.Dict and friends readable on 3.9
+    "UP035",
+    "RUF001", # the status line deliberately uses · and ≈
+    "RUF002",
+    "RUF003",
+    "SIM105", # explicit try/except reads better in hooks that must never fail
+    "UP045",  # Optional[...] reads more clearly than X | None for 3.9 readers
+    "UP022",  # stdout=PIPE, stderr=PIPE is explicit about both streams
+]
+
+[tool.ruff.lint.per-file-ignores]
+"plugins/et-ay/scripts/et_ay.py" = ["UP036"]  # the version guard is the point of the file
+"tests/*" = ["RUF012"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["etay", "helpers"]
+
+[tool.ruff.format]
+quote-style = "double"
