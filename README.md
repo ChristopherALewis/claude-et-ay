@@ -6,9 +6,9 @@
 
 et-ay is a Claude Code plugin that puts an estimated time to completion in your status line for whatever Claude is working on, so that when you hand over a prompt and go to make a coffee you have a decent idea whether it will be finished by the time you get back. It learns from your own history rather than guessing from first principles, which means the estimates start rough and get noticeably better after a few dozen prompts.
 
-```text
-ETA ~4m left (2-9m) · done ≈14:32 · 1m 20s in · 2/5 tasks · +1 queued
-```
+<p align="center">
+  <img src="docs/images/hero.png" alt="A terminal status line reading: ~/Code/my-project (main) · ETA ~4m left (2-9m) · done ≈14:32 · 1m 20s in · 2/5 tasks · +1 queued" width="880">
+</p>
 
 It has no dependencies beyond Python 3.9 or later, keeps everything on your machine, never stores the text of your prompts, and sits alongside any status line you already have rather than replacing it.
 
@@ -23,6 +23,12 @@ While Claude is working, the status line shows the time likely to be left with a
 | Waiting on a permission prompt or a question to you | `ETA paused, waiting for you · 3m 10s in` |
 | Running longer than nearly all comparable turns | `ETA running long, maybe 6m more · 18m 02s in` |
 | Idle, showing how the last turn went | `ETA last 4m 12s (est 3m)` |
+
+<p align="center">
+  <img src="docs/images/states.png" alt="The five states in colour: working normally, still learning, waiting on you, running long, and idle after a turn" width="760">
+</p>
+
+The images are et-ay's own renderer output for each state, shown in a terminal frame with an existing status line wrapped in front of it.
 
 Time spent waiting for you is left out of both the estimate and the history, so a permission prompt you leave sitting over lunch does not teach et-ay that the task took an hour.
 
