@@ -10,6 +10,8 @@ PLUGIN = helpers.PLUGIN
 TEXT_SUFFIXES = {".py", ".md", ".json", ".sh", ".yml", ".yaml", ".toml", ".txt", ".cfg", ""}
 EM_DASH = chr(0x2014)
 SKIP_DIRS = {".git", "__pycache__", ".ruff_cache", ".pytest_cache"}
+# Files written by `openspec init` and `openspec update`; edits to them are overwritten.
+OPENSPEC_GENERATED = (".claude/commands/opsx/", ".claude/skills/openspec-", "openspec/")
 # Skills Claude invokes on its own; every other skill is a user-only slash command.
 MODEL_SKILLS = {"progress"}
 
@@ -118,7 +120,12 @@ class LicenceTests(unittest.TestCase):
 
 class StyleTests(unittest.TestCase):
     def test_no_em_dashes(self):
-        offenders = [str(p.relative_to(REPO)) for p in text_files() if EM_DASH in p.read_text(encoding="utf-8")]
+        offenders = [
+            p.relative_to(REPO).as_posix()
+            for p in text_files()
+            if not p.relative_to(REPO).as_posix().startswith(OPENSPEC_GENERATED)
+            and EM_DASH in p.read_text(encoding="utf-8")
+        ]
         self.assertEqual(offenders, [])
 
     def test_shell_scripts_are_executable(self):
