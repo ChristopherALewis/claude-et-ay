@@ -23,6 +23,7 @@ While Claude is working, the status line shows the time likely to be left with a
 | Waiting on a permission prompt or a question to you | `ETA paused, waiting for you · 3m 10s in` |
 | Running longer than nearly all comparable turns | `ETA running long, maybe 6m more · 18m 02s in` |
 | Idle, showing how the last turn went | `ETA last 4m 12s (est 3m)` |
+| A background job reporting progress | `... · bg ▕██████░░░░▏ 3/7 Building · 2m ago` |
 
 <p align="center">
   <img src="docs/images/states.png" alt="The five states in colour: working normally, still learning, waiting on you, running long, and idle after a turn" width="760">
@@ -89,6 +90,18 @@ A queued message is invisible to plugins while it sits in the queue. Claude Code
 
 Interrupting a turn with Esc fires no hook either. et-ay notices when your next prompt arrives under a new prompt id, records the previous turn as interrupted and leaves it out of the training data.
 
+## Background progress
+
+Long jobs that Claude starts in the background (builds, test suites, migrations, batches of uploads) can report their own progress to the status line. At each session start et-ay adds an `ET_AY_PROGRESS` variable to the environment of every Bash command Claude runs, holding a path to a per-session file. A script reports progress by overwriting that file with one line:
+
+```bash
+printf '%s\n' "3/7 Building" > "$ET_AY_PROGRESS"     # a count
+printf '%s\n' "42% Uploading" > "$ET_AY_PROGRESS"    # a percentage
+printf '%s\n' "Indexing" > "$ET_AY_PROGRESS"         # a label, when the length is unknown
+```
+
+The status line shows the job after everything else, whether or not a turn is running, with a bar for a count or percentage and the time since the last write. A job that has not written for `progress_stale_minutes` shows `no update for 34m` in yellow, and a finished one (`7/7` or `100%`) turns green and disappears after `idle_seconds`. The plugin's `progress` skill tells Claude to do this for the long-running commands it starts, so you rarely need to write the lines yourself. Only the first line is read, capped at 200 characters, with control characters and terminal escapes removed.
+
 ## Configuration
 
 Settings live in `~/.claude/et-ay/config.json` and are easiest to change with `/et-ay:config`, for example `/et-ay:config set segments ["left","elapsed"]`. Every setting has a default, so the file is optional.
@@ -102,7 +115,10 @@ Settings live in `~/.claude/et-ay/config.json` and are easiest to change with `/
 | `color` | `true` | ANSI colours; the `NO_COLOR` environment variable always turns them off |
 | `ascii` | `false` | Plain ASCII output for terminals that struggle with `·` and `≈` |
 | `idle` | `"last"` | `"last"` shows how the previous turn went, `"none"` shows nothing |
-| `idle_seconds` | `900` | How long the idle summary stays up; `0` keeps it indefinitely |
+| `idle_seconds` | `900` | How long the idle summary, and a finished background job, stay up; `0` keeps them indefinitely |
+| `progress` | `true` | Export `ET_AY_PROGRESS` and show [background progress](#background-progress); takes effect for new sessions |
+| `progress_width` | `10` | Width of the progress bar in characters, from 1 to 40 |
+| `progress_stale_minutes` | `15` | A background job that has not reported for this long is shown as stalled |
 | `position` | `"after"` | Where et-ay goes relative to a wrapped status line: `after`, `before` or on its own `line` |
 | `wrapped_timeout` | `3.0` | Seconds to wait for your existing status line command |
 | `half_life_days` | `45` | How quickly old turns lose influence |

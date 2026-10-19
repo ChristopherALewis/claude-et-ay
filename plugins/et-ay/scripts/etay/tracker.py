@@ -27,7 +27,7 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from . import estimator, features, paths, transcript
+from . import estimator, features, paths, progress, transcript
 from .storage import append_jsonl, atomic_write_json, atomic_write_text, locked, read_json, read_jsonl
 
 STATE_VERSION = 1
@@ -204,6 +204,7 @@ class Tracker:
             self._state_file(session_id).unlink()
         except OSError:
             pass
+        progress.remove(self.data, session_id)
 
     # -- events --------------------------------------------------------------
 
@@ -381,15 +382,17 @@ class Tracker:
 
 
 def housekeeping(data: Path, now: float, max_records: int = 20000, session_days: float = 14.0) -> None:
-    """Drop session files for long-gone sessions and trim an oversized history.
+    """Drop session and progress files for long-gone sessions and trim an oversized history.
 
     Runs at session start. Both jobs are cheap when there is nothing to do.
     """
     cutoff = now - session_days * 86400.0
-    try:
-        entries = list(paths.sessions_dir(data).iterdir())
-    except OSError:
-        entries = []
+    entries = []
+    for folder in (paths.sessions_dir(data), progress.progress_dir(data)):
+        try:
+            entries.extend(folder.iterdir())
+        except OSError:
+            continue
     for entry in entries:
         try:
             if entry.stat().st_mtime < cutoff:

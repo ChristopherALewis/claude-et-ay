@@ -10,6 +10,8 @@ PLUGIN = helpers.PLUGIN
 TEXT_SUFFIXES = {".py", ".md", ".json", ".sh", ".yml", ".yaml", ".toml", ".txt", ".cfg", ""}
 EM_DASH = chr(0x2014)
 SKIP_DIRS = {".git", "__pycache__", ".ruff_cache", ".pytest_cache"}
+# Skills Claude invokes on its own; every other skill is a user-only slash command.
+MODEL_SKILLS = {"progress"}
 
 
 def text_files():
@@ -73,7 +75,14 @@ class ManifestTests(unittest.TestCase):
             self.assertTrue(text.startswith("---\n"), skill)
             front = text.split("---", 2)[1]
             self.assertRegex(front, r"\ndescription: .{20,}", skill)
-            self.assertIn("disable-model-invocation: true", front, skill)
+            if skill.parent.name in MODEL_SKILLS:
+                # Claude loads these itself, so they stay out of the / menu instead.
+                self.assertIn("user-invocable: false", front, skill)
+                self.assertNotIn("disable-model-invocation", front, skill)
+                description = front.split("\ndescription: ", 1)[1].split("\n", 1)[0]
+                self.assertLessEqual(len(description), 160, "model-invoked descriptions are always in context")
+            else:
+                self.assertIn("disable-model-invocation: true", front, skill)
 
 
 class LicenceTests(unittest.TestCase):

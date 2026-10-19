@@ -16,7 +16,7 @@ import subprocess
 import sys
 from typing import Any, Dict, Optional
 
-from . import config, paths, render, tracker
+from . import config, paths, progress, render, tracker
 from .storage import atomic_write_json, locked, read_json
 
 
@@ -108,8 +108,10 @@ def main(data_arg: Optional[str] = None) -> int:
         data_dir = paths.data_dir(data_arg)
         session_id = payload.get("session_id")
         if isinstance(session_id, str) and session_id:
+            now = paths.now()
             state = tracker.read_session(data_dir, session_id)
-            ours = render.format_view(render.compute(state, paths.now(), cfg), cfg)
+            report = progress.read(data_dir, session_id) if cfg.get("progress") else None
+            ours = render.format_view(render.compute(state, now, cfg), cfg, render.progress_view(report, now, cfg))
             try:
                 _remember_session_facts(data_dir, session_id, payload)
             except OSError:

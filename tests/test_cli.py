@@ -106,9 +106,9 @@ class CommandTests(unittest.TestCase):
         self.assertEqual(helpers.run_cli(["config", "set", "label", "⏱"]).returncode, 0)
         self.assertEqual(helpers.run_cli(["config", "set", "segments", '["left","elapsed"]']).returncode, 0)
         shown = helpers.run_cli(["config", "show"]).stdout.decode()
-        self.assertIn('* label            "⏱"', shown)
+        self.assertRegex(shown, r'\* label +"⏱"')
         self.assertEqual(helpers.run_cli(["config", "unset", "label"]).returncode, 0)
-        self.assertIn('   label            "ETA"', helpers.run_cli(["config", "show"]).stdout.decode())
+        self.assertRegex(helpers.run_cli(["config", "show"]).stdout.decode(), r'   label +"ETA"')
 
     def test_config_validation(self):
         for args in (
@@ -121,6 +121,11 @@ class CommandTests(unittest.TestCase):
             ["config", "set", "stale_minutes", "0"],
             ["config", "set", "prior_strength", "-1"],
             ["config", "set", "idle_seconds", "-5"],
+            ["config", "set", "progress", "1"],
+            ["config", "set", "progress_width", "0"],
+            ["config", "set", "progress_width", "41"],
+            ["config", "set", "progress_width", "2.5"],
+            ["config", "set", "progress_stale_minutes", "0"],
         ):
             result = helpers.run_cli(args)
             self.assertEqual(result.returncode, 2, args)
@@ -130,7 +135,7 @@ class CommandTests(unittest.TestCase):
         paths.config_path().parent.mkdir(parents=True, exist_ok=True)
         paths.config_path().write_text('{"label": 42, "color": false, "oops"')
         shown = helpers.run_cli(["config", "show"]).stdout.decode()
-        self.assertIn('label            "ETA"', shown)
+        self.assertRegex(shown, r'label +"ETA"')
 
     def test_reset_needs_confirmation(self):
         helpers.hook("prompt", {"session_id": "s", "prompt_id": "p", "prompt": "x"}, T0)

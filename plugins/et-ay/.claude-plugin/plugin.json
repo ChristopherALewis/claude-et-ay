@@ -1,7 +1,7 @@
 {
   "name": "et-ay",
   "displayName": "et-ay",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Estimated time to completion for Claude Code: a live status line ETA for the prompt Claude is working on, learnt from your own history.",
   "author": {
     "name": "Christopher Lewis",

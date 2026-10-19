@@ -18,7 +18,7 @@ After installing, run `/et-ay:setup` to add it to your status line (Claude Code 
 | `/et-ay:config` | Shows or changes settings |
 | `/et-ay:remove` | Restores your previous status line; run it before uninstalling |
 
-Settings are stored in `~/.claude/et-ay/config.json`. Run `/et-ay:config show` to list them with their current values. The main ones are `segments` (which parts to show, from `left`, `range`, `clock`, `elapsed`, `tasks`, `queued` and `confidence`), `label`, `clock_format`, `color`, `ascii`, `idle`, `position` (`after`, `before` or `line` relative to a wrapped status line) and `debug`.
+Settings are stored in `~/.claude/et-ay/config.json`. Run `/et-ay:config show` to list them with their current values. The main ones are `segments` (which parts to show, from `left`, `range`, `clock`, `elapsed`, `tasks`, `queued` and `confidence`), `label`, `clock_format`, `color`, `ascii`, `idle`, `position` (`after`, `before` or `line` relative to a wrapped status line), `progress` (show progress that background jobs write to `$ET_AY_PROGRESS`) and `debug`.
 
 The full documentation, including how the estimate is calculated and what is stored, is at <https://github.com/ChristopherALewis/claude-et-ay>.
 

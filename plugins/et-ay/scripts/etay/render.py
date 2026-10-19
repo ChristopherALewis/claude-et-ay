@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import os
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 from . import estimator
 
@@ -20,6 +20,8 @@ _STYLES = {
     "wait": "\033[35m",
     "good": "\033[32m",
 }
+
+Paint = Callable[[str, str], str]
 
 
 # ---------------------------------------------------------------------------
@@ -119,6 +121,34 @@ def _running_view(turn: Dict[str, Any], now: float) -> Dict[str, Any]:
     }
 
 
+def progress_view(report: Optional[Dict[str, Any]], now: float, cfg: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """Decide how a background job's progress report should look, if at all."""
+    if not cfg.get("progress") or not isinstance(report, dict):
+        return None
+    age = max(0.0, now - float(report.get("updated_at") or now))
+    fraction = report.get("fraction")
+    done = fraction is not None and fraction >= 1.0
+    if done:
+        # A finished job stays up as long as an idle summary would.
+        limit = float(cfg.get("idle_seconds") or 0)
+        if limit > 0 and age > limit:
+            return None
+        state = "done"
+    elif age >= float(cfg.get("progress_stale_minutes") or 0) * 60.0:
+        state = "stale"
+    else:
+        state = "active"
+    return dict(report, age=age, state=state)
+
+
+def bar(fraction: float, width: int, ascii_only: bool) -> str:
+    width = max(1, int(width))
+    filled = min(width, max(0, round(float(fraction) * width)))
+    if ascii_only:
+        return "[" + "#" * filled + "-" * (width - filled) + "]"
+    return "▕" + "█" * filled + "░" * (width - filled) + "▏"
+
+
 # ---------------------------------------------------------------------------
 # Formatting
 
@@ -127,19 +157,41 @@ def _use_color(cfg: Dict[str, Any]) -> bool:
     return bool(cfg.get("color")) and "NO_COLOR" not in os.environ
 
 
-def format_view(view: Optional[Dict[str, Any]], cfg: Dict[str, Any]) -> str:
-    if view is None:
+def _format_progress(progress: Dict[str, Any], cfg: Dict[str, Any], paint: Paint, sep: str) -> str:
+    """For example "bg ▕██████░░░░▏ 3/7 Building · 2m ago"."""
+    words = [w for w in (progress.get("count"), progress.get("label")) if w]
+    if progress.get("fraction") is not None:
+        words.insert(0, bar(progress["fraction"], int(cfg.get("progress_width") or 10), bool(cfg.get("ascii"))))
+    age = progress["age"]
+    ago = "just now" if age < 10 else f"{approx(age)} ago"
+    if progress["state"] == "done":
+        return paint(" ".join(["bg", *words]) + sep + ago, "good")
+    when = paint(f"no update for {approx(age)}", "warn") if progress["state"] == "stale" else paint(ago, "dim")
+    return f"{paint('bg', 'dim')} {paint(' '.join(words), 'main')}{sep}{when}"
+
+
+def format_view(view: Optional[Dict[str, Any]], cfg: Dict[str, Any], progress: Optional[Dict[str, Any]] = None) -> str:
+    """The whole segment: the turn's estimate or idle summary, then any background progress."""
+    if view is None and progress is None:
         return ""
     color = _use_color(cfg)
-    ascii_only = bool(cfg.get("ascii"))
-    sep = " | " if ascii_only else str(cfg.get("separator") or " · ")
-    tilde = "~" if ascii_only else "≈"
+    sep = " | " if cfg.get("ascii") else str(cfg.get("separator") or " · ")
 
     def paint(text: str, style: str) -> str:
         return f"{_STYLES[style]}{text}{_RESET}" if color and text else text
 
     label = str(cfg.get("label") or "")
     head = paint(label, "label") if label else ""
+    parts = _turn_parts(view, cfg, paint) if view is not None else []
+    if progress is not None:
+        parts.append(_format_progress(progress, cfg, paint, sep))
+    body = sep.join(part for part in parts if part)
+    return " ".join(part for part in (head, body) if part)
+
+
+def _turn_parts(view: Dict[str, Any], cfg: Dict[str, Any], paint: Paint) -> List[str]:
+    ascii_only = bool(cfg.get("ascii"))
+    tilde = "~" if ascii_only else "≈"
 
     if view["mode"] == "idle":
         last = view["last"]
@@ -150,7 +202,7 @@ def format_view(view: Optional[Dict[str, Any]], cfg: Dict[str, Any]) -> str:
                 body += f" (est {approx(last['p50'])})"
         else:
             body = f"last turn {outcome}"
-        return " ".join(part for part in (head, paint(body, "dim")) if part)
+        return [paint(body, "dim")]
 
     segments: List[str] = list(cfg.get("segments") or [])
     left = view["left"]
@@ -182,5 +234,4 @@ def format_view(view: Optional[Dict[str, Any]], cfg: Dict[str, Any]) -> str:
         elif segment == "confidence":
             parts.append(paint(f"{view['confidence']} confidence", "dim"))
 
-    body = sep.join(parts)
-    return " ".join(part for part in (head, body) if part)
+    return parts

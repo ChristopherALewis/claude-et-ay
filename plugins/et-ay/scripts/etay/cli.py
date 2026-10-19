@@ -6,12 +6,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from . import __version__, config, paths, report, settings, statusline, tracker
+from . import __version__, config, paths, progress, report, settings, statusline, tracker
 from .storage import append_capped, atomic_write_json, locked, read_json
 
 HOOK_EVENTS = (
@@ -99,6 +100,10 @@ def run_hook(event: str, data_arg: Optional[str]) -> int:
         if event == "session-start":
             paths.write_pointers(paths.plugin_root(), data)
             tracker.housekeeping(data, now)
+            env_file = os.environ.get("CLAUDE_ENV_FILE")
+            session_id = payload.get("session_id")
+            if cfg.get("progress") and env_file and isinstance(session_id, str) and session_id:
+                progress.export(env_file, data, session_id)
         tracker.Tracker(data, cfg, now).handle(event, payload)
         _heartbeat(data, event, now)
     except Exception:  # noqa: BLE001 - a hook must never disrupt Claude Code
@@ -161,7 +166,7 @@ def _config_command(args: argparse.Namespace) -> int:
         _print(f"Settings file: {paths.config_path()}")
         for key, value, custom in config.describe():
             marker = "*" if custom else " "
-            _print(f" {marker} {key:<16} {json.dumps(value, ensure_ascii=False)}")
+            _print(f" {marker} {key:<22} {json.dumps(value, ensure_ascii=False)}")
         _print("(* = changed from the default)")
         return 0
     try:

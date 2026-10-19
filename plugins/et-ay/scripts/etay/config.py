@@ -33,6 +33,12 @@ DEFAULTS: Dict[str, Any] = {
     "idle": "last",
     # How long after a turn ends the idle summary stays visible, in seconds (0 = forever).
     "idle_seconds": 900,
+    # Show progress that background jobs write to $ET_AY_PROGRESS, after the other segments.
+    "progress": True,
+    # Width of the progress bar, in characters.
+    "progress_width": 10,
+    # A progress report older than this is shown as stalled.
+    "progress_stale_minutes": 15,
     # Where et-ay's segment goes relative to a wrapped status line: after, before or line.
     "position": "after",
     # Seconds to wait for a wrapped status line command before giving up on it.
@@ -56,6 +62,9 @@ _TYPES: Dict[str, Tuple[type, ...]] = {
     "ascii": (bool,),
     "idle": (str,),
     "idle_seconds": (int, float),
+    "progress": (bool,),
+    "progress_width": (int,),
+    "progress_stale_minutes": (int, float),
     "position": (str,),
     "wrapped_timeout": (int, float),
     "half_life_days": (int, float),
@@ -64,6 +73,15 @@ _TYPES: Dict[str, Tuple[type, ...]] = {
     "stale_minutes": (int, float),
     "debug": (bool,),
 }
+
+_POSITIVE = (
+    "half_life_days",
+    "history_window",
+    "wrapped_timeout",
+    "stale_minutes",
+    "prior_strength",
+    "progress_stale_minutes",
+)
 
 _CHOICES = {"idle": ("last", "none"), "position": ("after", "before", "line")}
 
@@ -84,8 +102,10 @@ def validate(key: str, value: Any) -> Any:
         unknown = [s for s in value if s not in SEGMENTS]
         if unknown:
             raise ValueError(f"unknown segments {unknown}; choose from {', '.join(SEGMENTS)}")
-    if key in ("half_life_days", "history_window", "wrapped_timeout", "stale_minutes", "prior_strength") and value <= 0:
+    if key in _POSITIVE and value <= 0:
         raise ValueError(f"{key} must be greater than zero")
+    if key == "progress_width" and not 1 <= value <= 40:
+        raise ValueError("progress_width must be between 1 and 40")
     if key == "idle_seconds" and value < 0:
         raise ValueError("idle_seconds cannot be negative (0 means forever)")
     return value
